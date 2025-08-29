@@ -1,0 +1,20 @@
+[
+  {
+    "id": "backend",
+    "title": "Backend SDE (Django/REST)",
+    "skills": ["python", "django", "rest", "sql", "postgres", "docker", "linux", "git", "aws"],
+    "text": "We seek a Backend Engineer to build and document REST APIs using Python and Django/DRF. Experience with relational databases (PostgreSQL/MySQL), writing performant SQL, containerization with Docker, Linux basics, and Git workflows. Bonus: AWS basics."
+  },
+  {
+    "id": "data-ml-intern",
+    "title": "Data/ML Intern",
+    "skills": ["python", "pandas", "numpy", "sklearn", "nlp", "ml", "git", "sql"],
+    "text": "Assist with data wrangling using Python (pandas, numpy), feature engineering, training baseline ML models (scikit-learn), and writing clean, reproducible code. Familiarity with SQL and basic NLP is a plus."
+  },
+  {
+    "id": "frontend",
+    "title": "Frontend Intern (React)",
+    "skills": ["javascript", "react", "html", "css", "rest", "git", "testing"],
+    "text": "Build UI components in React, integrate REST APIs, manage state, and write basic tests. Understanding of HTML/CSS fundamentals and Git required."
+  }
+]
