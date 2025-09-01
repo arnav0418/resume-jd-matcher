@@ -1,11 +1,18 @@
-import json
+# make repo root importable (so `import src...` works when run via streamlit)
+import sys
 from pathlib import Path
+
+import json
 
 import streamlit as st
 
-from src.extract import extract_text_from_file
-from src.jds import load_jds, get_jd_by_id
-from src.score_stub import compute_stub_scores
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.extract import extract_text_from_file  # noqa: E402
+from src.jds import load_jds, get_jd_by_id  # noqa: E402
+from src.score_stub import compute_stub_scores  # noqa: E402
 
 st.set_page_config(page_title="Resume ↔ JD Matching Demo", layout="centered")
 
