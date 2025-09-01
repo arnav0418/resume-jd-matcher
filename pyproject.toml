@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resume-jd-matcher"
+version = "0.1.0"
+description = "A resume-to-job-description matcher"
+authors = [{ name="Arnav", email="arnavg0418@gmail.com" }]
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+where = ["src"]
