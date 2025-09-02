@@ -25,3 +25,17 @@ final = 100 * (0.7 * semantic_similarity + 0.3 * skills_coverage)
 1. Step 0: Repo + hygiene ✅
 2. Step 1: Walking skeleton (thin end-to-end UI) ⏳
 3. Step 2+: Vertical slices (extraction → embeddings → scoring → explainability)
+
+## Running the demo
+
+Install the project in editable mode from the repository root:
+
+```bash
+pip install -e .
+```
+
+Then launch the Streamlit app:
+
+```bash
+streamlit run app/app.py
+```
