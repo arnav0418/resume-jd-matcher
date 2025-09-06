@@ -12,7 +12,8 @@ if str(ROOT) not in sys.path:
 
 from src.extract import extract_text_from_file  # noqa: E402
 from src.jds import load_jds, get_jd_by_id  # noqa: E402
-from src.score_stub import compute_stub_scores  # noqa: E402
+from src.score_embed import compute_embed_scores  # noqa: E402
+
 
 st.set_page_config(page_title="Resume ↔ JD Matching Demo", layout="centered")
 
@@ -43,6 +44,13 @@ with col2:
         help="Trim very long resumes for a fast demo. Will be documented in README.",
     )
 
+backend = st.radio(
+    "Scoring backend",
+    options=["Embeddings (MiniLM)", "Stub (token overlap)"],
+    index=0,
+    help="Use embeddings for real semantic similarity. Stub is fast but simplistic.",
+)
+
 uploaded = st.file_uploader(
     "Upload your resume (PDF / DOCX / TXT)",
     type=["pdf", "docx", "txt"],
@@ -70,7 +78,12 @@ if run:
                 st.error("Could not extract text. Ensure the PDF is text-based (not scanned).")
                 st.stop()
 
-            results = compute_stub_scores(resume_text, jd, top_n=3)
+            if backend.startswith("Embedding"):
+                results = compute_embed_scores(resume_text, jd, top_n=3)
+            else:
+                from src.score_stub import compute_stub_scores  # lazy import keeps app fast
+
+                results = compute_stub_scores(resume_text, jd, top_n=3)
 
             st.subheader("Results")
             c1, c2, c3 = st.columns(3)
@@ -87,8 +100,13 @@ if run:
                     st.write(f"- “{item['sentence']}” — sim {item['similarity']:.2f}")
 
             # Preview for transparency
-            with st.expander("Resume text preview (first 2,000 chars)"):
-                st.text(results.get("resume_text_preview", "")[:2000])
+            with st.expander("Resume text preview"):
+                st.text_area(
+                    "Preview",
+                    results.get("resume_text_preview", ""),
+                    height=300,  # adjust as needed
+                    label_visibility="collapsed",  # hides the "Preview" label
+                )
 
             # Download JSON
             payload = json.dumps(results, ensure_ascii=False, indent=2)
