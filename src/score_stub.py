@@ -93,6 +93,6 @@ def compute_stub_scores(resume_text: str, jd: Dict, top_n: int = 3) -> Dict:
         "skills_coverage": round(coverage, 4),
         "matched_skills": matched,
         "missing_skills": missing,
-        "resume_text_preview": resume_text[:2000],
+        "resume_text_preview": resume_text,
         "top_matching_jd_sentences": top_sent,
     }
