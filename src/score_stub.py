@@ -1,6 +1,9 @@
 import re
 from typing import Dict, List
 
+# at top
+from skills import find_skills, load_skill_aliases
+
 
 STOPWORDS = {
     "a",
@@ -51,6 +54,7 @@ def _jaccard(a: List[str], b: List[str]) -> float:
     return inter / union
 
 
+"""
 def _skills_found(resume_text: str, skills: List[str]) -> List[str]:
     found = []
     lower = resume_text.lower()
@@ -60,6 +64,7 @@ def _skills_found(resume_text: str, skills: List[str]) -> List[str]:
         if re.search(pat, lower):
             found.append(s)
     return sorted(list(dict.fromkeys(found)))  # dedupe, keep order
+"""
 
 
 def compute_stub_scores(resume_text: str, jd: Dict, top_n: int = 3) -> Dict:
@@ -70,7 +75,13 @@ def compute_stub_scores(resume_text: str, jd: Dict, top_n: int = 3) -> Dict:
     sem = _jaccard(_tokenize(resume_text), _tokenize(jd_text))
 
     # Skills coverage
+    """
     matched = _skills_found(resume_text, jd_skills)
+    coverage = (len(matched) / len(jd_skills)) if jd_skills else 0.0
+    missing = [s for s in jd_skills if s not in matched]
+    """
+    aliases = load_skill_aliases()
+    matched = find_skills(resume_text, jd_skills, alias_map=aliases)
     coverage = (len(matched) / len(jd_skills)) if jd_skills else 0.0
     missing = [s for s in jd_skills if s not in matched]
 

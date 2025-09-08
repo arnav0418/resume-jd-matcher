@@ -6,6 +6,9 @@ from typing import Dict, List
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+# add this import near the top
+from skills import find_skills, load_skill_aliases
+
 
 # ---- model loading (lazy singletons) ----
 _MODEL: SentenceTransformer | None = None
@@ -65,6 +68,7 @@ def _embed_text(text: str) -> np.ndarray:
     return (mean_vec / norm).astype(np.float32)
 
 
+"""
 def _skills_found(resume_text: str, skills: List[str]) -> List[str]:
     found = []
     lower = resume_text.lower()
@@ -74,6 +78,7 @@ def _skills_found(resume_text: str, skills: List[str]) -> List[str]:
             found.append(s)
     # dedupe, keep order of first occurrence
     return sorted(list(dict.fromkeys(found)), key=lambda x: found.index(x))
+"""
 
 
 def _cosine(a: np.ndarray, b: np.ndarray) -> float:
@@ -90,7 +95,14 @@ def compute_embed_scores(resume_text: str, jd: Dict, top_n: int = 3) -> Dict:
     semantic = _cosine(resume_vec, jd_vec)  # already normalized → cosine in [~0,1]
 
     # Skills coverage
+    """
     matched = _skills_found(resume_text, jd_skills)
+    coverage = (len(matched) / len(jd_skills)) if jd_skills else 0.0
+    missing = [s for s in jd_skills if s not in matched]
+    """
+    # Skills coverage (alias-aware, word-boundary safe)
+    aliases = load_skill_aliases()
+    matched = find_skills(resume_text, jd_skills, alias_map=aliases)
     coverage = (len(matched) / len(jd_skills)) if jd_skills else 0.0
     missing = [s for s in jd_skills if s not in matched]
 
