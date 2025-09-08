@@ -1,0 +1,17 @@
+{
+  "rest": ["REST", "RESTful", "REST API", "RESTful APIs"],
+  "postgres": ["PostgreSQL", "Postgres", "PSQL"],
+  "sql": ["SQL", "Structured Query Language"],
+  "docker": ["Docker", "Docker Compose"],
+  "linux": ["Linux", "GNU/Linux"],
+  "git": ["Git", "GitHub", "GitLab"],
+  "aws": ["AWS", "Amazon Web Services"],
+  "django": ["Django", "Django REST Framework", "DRF", "Django/DRF"],
+  "react": ["React", "ReactJS", "React.js", "React JS"],
+  "javascript": ["JavaScript", "JS"],
+  "html": ["HTML", "HTML5"],
+  "css": ["CSS", "CSS3"],
+  "node.js": ["Node.js", "Nodejs", "Node JS"],
+  "c++": ["C++"],
+  "c#": ["C#"]
+}
