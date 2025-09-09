@@ -54,7 +54,6 @@ def _jaccard(a: List[str], b: List[str]) -> float:
     return inter / union
 
 
-"""
 def _skills_found(resume_text: str, skills: List[str]) -> List[str]:
     found = []
     lower = resume_text.lower()
@@ -64,7 +63,6 @@ def _skills_found(resume_text: str, skills: List[str]) -> List[str]:
         if re.search(pat, lower):
             found.append(s)
     return sorted(list(dict.fromkeys(found)))  # dedupe, keep order
-"""
 
 
 def compute_stub_scores(resume_text: str, jd: Dict, top_n: int = 3) -> Dict:
