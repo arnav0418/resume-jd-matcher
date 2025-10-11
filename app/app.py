@@ -20,7 +20,7 @@ st.set_page_config(page_title="Resume ↔ JD Matching Demo", layout="centered")
 DATA_DIR = Path("data")
 JDS_PATH = DATA_DIR / "jds.json"
 
-st.title("Resume ↔ JD Matching Demo (v1 • walking skeleton)")
+st.title("Resume ↔ JD Matching Demo")
 
 # Load JDs
 try:
