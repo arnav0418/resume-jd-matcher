@@ -27,6 +27,11 @@ def _tokenize_words(text: str) -> List[str]:
     return re.findall(r"[A-Za-z0-9]+", text.lower())
 
 
+# public helper for other modules (post-check uses this)
+def embed_text(text: str):
+    return _embed_text(text)
+
+
 def _chunk_words(words: List[str], size: int = 250, overlap: int = 50) -> List[str]:
     """
     Break a long text into ~word-sized chunks so we don't lose information
