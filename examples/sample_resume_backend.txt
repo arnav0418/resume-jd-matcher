@@ -1,0 +1,7 @@
+Arnav Gupta — Backend Engineer
+
+Skills: Python, Django, Django REST Framework, SQL, PostgreSQL, Docker, Linux, Git, AWS
+Experience:
+- Built RESTful APIs with Django/DRF, wrote performant SQL, containerized with Docker.
+- Deployed on AWS (EC2, S3); CI using GitHub Actions. Linux server basics.
+Projects: Employee Management System (JWT auth, DRF viewsets), Resume Parser.

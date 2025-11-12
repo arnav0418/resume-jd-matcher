@@ -1,0 +1,7 @@
+Arnav Gupta — Data/ML Intern
+
+Skills: Python, Pandas, NumPy, scikit-learn, NLP basics, SQL, Git
+Experience:
+- Data wrangling with pandas/NumPy, feature engineering, trained baseline ML models.
+- Simple text preprocessing for NLP; experiments tracked reproducibly.
+Projects: Age/Gender/Height prediction from speech, model evaluation & reporting.
