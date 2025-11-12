@@ -1,5 +1,6 @@
 # make repo root importable (so `import src...` works when run via streamlit)
 import sys
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -17,6 +18,7 @@ from src.jds import load_jds, get_jd_by_id  # noqa: E402
 from src.score_embed import compute_embed_scores  # noqa: E402
 from src.score_stub import compute_stub_scores  # noqa: E402
 from src.schema import wrap_result, ScoreWeights  # noqa: E402
+from src.genai.suggest import generate_improvements  # noqa: E402
 
 
 st.set_page_config(page_title="Resume ↔ JD Matching Demo", layout="centered")
@@ -158,6 +160,122 @@ if run:
             file_name=fname,
             mime="application/json",
         )
+
+        st.divider()
+        st.subheader("GenAI: Improve resume to better match the JD")
+
+        # Explain provider selection (optional)
+        st.caption(
+            "Provider: set GENAI_PROVIDER=mock (default) or openai; "
+            "for OpenAI also set OPENAI_API_KEY and optionally OPENAI_MODEL."
+        )
+
+        provider_choice = st.selectbox(
+            "Provider",
+            ["mock (default)", "openai"],
+            index=0,
+            help="mock requires no API key; openai needs OPENAI_API_KEY",
+        )
+        if provider_choice.startswith("openai"):
+            os.environ["GENAI_PROVIDER"] = "openai"
+        else:
+            os.environ["GENAI_PROVIDER"] = "mock"
+
+        colA, colB = st.columns([1, 3])
+        with colA:
+            run_genai = st.button("✨ Improve with GenAI", type="primary")
+        with colB:
+            st.write(
+                "Get targeted, truthful suggestions with estimated impact on similarity and skills coverage."
+            )
+
+        if run_genai:
+            with st.spinner("Generating suggestions..."):
+                try:
+                    improve_payload = generate_improvements(resume_text, jd)
+                except Exception as e:
+                    st.exception(e)
+                    st.stop()
+
+            suggestions = improve_payload.get("suggestions", [])
+            gap_report = improve_payload.get("gap_report", {})
+            notes = improve_payload.get("notes", [])
+            guardrails = improve_payload.get("guardrails", [])
+
+            if not suggestions:
+                st.info("No suggestions returned. Try switching provider or using a longer resume.")
+            else:
+                st.write(f"**Suggestions** ({len(suggestions)})")
+
+                # Render suggestion cards
+                for i, s in enumerate(suggestions, start=1):
+                    with st.container(border=True):
+                        top = st.columns([5, 2, 2])
+                        with top[0]:
+                            st.markdown(
+                                f"**{i}. {s['type'].replace('_',' ').title()} → {s['target_section'].title()}**"
+                            )
+                        with top[1]:
+                            # needs evidence badge
+                            if s.get("needs_evidence"):
+                                st.markdown(":orange[**needs evidence**]")
+                            else:
+                                st.markdown(":green[**grounded**]")
+                        with top[2]:
+                            # estimated lift chips
+                            lift = s.get("est_lift", {})
+                            sem = lift.get("semantic", 0.0)
+                            skl = lift.get("skills", 0.0)
+                            st.markdown(f"Δ semantic: **{sem:+.2f}**, Δ skills: **{skl:+.2f}**")
+
+                        # Proposed line
+                        st.markdown("**Proposed:**")
+                        st.code(s["proposed"], language="text")
+
+                        # Optional original
+                        if s.get("original"):
+                            with st.expander("Original"):
+                                st.code(s["original"], language="text")
+
+                        # Rationale
+                        st.markdown(f"**Why:** {s['rationale']}")
+
+                        # Copy button
+                        st.button(
+                            "Copy proposed",
+                            key=f"copy_{i}",
+                            use_container_width=False,
+                            on_click=lambda txt=s["proposed"]: st.session_state.update(
+                                {"_copy_last": txt}
+                            ),
+                            help="Copies the proposed line to session state (you can manually copy from the code block).",
+                        )
+
+                # Gap report summary (collapsible)
+                with st.expander("Gap report"):
+                    st.write(gap_report)
+
+                # Notes & guardrails
+                if notes:
+                    st.write("**Notes:**")
+                    for n in notes:
+                        st.write(f"- {n}")
+                if guardrails:
+                    st.write("**Guardrails:**")
+                    for g in guardrails:
+                        st.write(f"- {g}")
+
+                # Download suggestions JSON
+                from datetime import datetime
+
+                ts2 = datetime.now().strftime("%Y%m%d_%H%M%S")
+                fname2 = f"suggestions_{jd['id']}_{ts2}.json"
+                st.download_button(
+                    "Download suggestions JSON",
+                    data=json.dumps(improve_payload, ensure_ascii=False, indent=2).encode("utf-8"),
+                    file_name=fname2,
+                    mime="application/json",
+                )
 
 
 st.caption(
