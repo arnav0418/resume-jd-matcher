@@ -28,6 +28,14 @@ JDS_PATH = DATA_DIR / "jds.json"
 
 st.title("Resume ↔ JD Matching Demo")
 
+if "last_resume_text" not in st.session_state:
+    st.session_state["last_resume_text"] = None
+if "last_jd" not in st.session_state:
+    st.session_state["last_jd"] = None
+if "last_payload" not in st.session_state:
+    st.session_state["last_payload"] = None
+
+
 # Load JDs
 try:
     jds = load_jds(JDS_PATH)
@@ -161,121 +169,136 @@ if run:
             mime="application/json",
         )
 
-        st.divider()
-        st.subheader("GenAI: Improve resume to better match the JD")
+        # ... after st.download_button for the match results
+        st.session_state["last_resume_text"] = resume_text
+        st.session_state["last_jd"] = jd
+        st.session_state["last_payload"] = payload
 
-        # Explain provider selection (optional)
-        st.caption(
-            "Provider: set GENAI_PROVIDER=mock (default) or openai; "
-            "for OpenAI also set OPENAI_API_KEY and optionally OPENAI_MODEL."
-        )
 
-        provider_choice = st.selectbox(
-            "Provider",
-            ["mock (default)", "openai"],
-            index=0,
-            help="mock requires no API key; openai needs OPENAI_API_KEY",
-        )
-        if provider_choice.startswith("openai"):
-            os.environ["GENAI_PROVIDER"] = "openai"
+# --- Divider & Header ---
+st.divider()
+st.subheader("GenAI: Improve resume to better match the JD")
+st.caption(
+    "Select which backend to use for generating improvement suggestions.\n\n"
+    "- `mock` → Offline, static responses (for testing/demo)\n"
+    "- `local (Ollama)` → Runs locally using pulled model (e.g., `phi3`, `llama3`)\n"
+    "- `openai` → Uses GPT models via API key (requires billing)"
+)
+
+# --- Provider selector ---
+provider_choice = st.selectbox(
+    "Choose GenAI Provider",
+    ["mock (default)", "local (Ollama)", "openai"],
+    index=0,
+    help="Switch between offline mock, local Ollama, or OpenAI APIs.",
+)
+
+# --- Environment variable setup ---
+if provider_choice.startswith("openai"):
+    os.environ["GENAI_PROVIDER"] = "openai"
+    st.info("Using OpenAI provider — requires `OPENAI_API_KEY` (and optional `OPENAI_MODEL`).")
+elif "local" in provider_choice.lower():
+    os.environ["GENAI_PROVIDER"] = "local"
+    os.environ.setdefault("LOCAL_MODEL", "phi3")  # default model if not set
+    st.info(
+        "Using Local (Ollama) provider — ensure Ollama is running and model is pulled (e.g., `ollama pull phi3`)."
+    )
+else:
+    os.environ["GENAI_PROVIDER"] = "mock"
+    st.info("Using Mock provider — generates static suggestions for testing.")
+
+# --- Action buttons ---
+colA, colB = st.columns([1, 3])
+with colA:
+    run_genai = st.button("✨ Improve with GenAI", type="primary")
+with colB:
+    st.write(
+        "Generate targeted, truthful suggestions with estimated impact on similarity and skills coverage."
+    )
+
+# --- Retrieve inputs from session ---
+ss_resume = st.session_state.get("last_resume_text")
+ss_jd = st.session_state.get("last_jd")
+
+# --- Run GenAI suggestion generation ---
+if run_genai:
+    if not ss_resume or not ss_jd:
+        st.warning("⚠️ Please run **Match** first (upload or use sample resume).")
+    else:
+        with st.spinner("Generating GenAI improvement suggestions..."):
+            try:
+                improve_payload = generate_improvements(ss_resume, ss_jd)
+            except Exception as e:
+                st.error(str(e))
+                st.info("Tip: If you see a quota or connection error, switch to another provider.")
+                st.stop()
+
+        suggestions = improve_payload.get("suggestions", [])
+        gap_report = improve_payload.get("gap_report", {})
+        notes = improve_payload.get("notes", [])
+        guardrails = improve_payload.get("guardrails", [])
+
+        # --- Display results ---
+        if not suggestions:
+            st.info("No suggestions returned. Try switching provider or using a longer resume.")
         else:
-            os.environ["GENAI_PROVIDER"] = "mock"
+            st.success(f"Received {len(suggestions)} suggestion(s).")
+            st.write("### Suggestions")
 
-        colA, colB = st.columns([1, 3])
-        with colA:
-            run_genai = st.button("✨ Improve with GenAI", type="primary")
-        with colB:
-            st.write(
-                "Get targeted, truthful suggestions with estimated impact on similarity and skills coverage."
-            )
-
-        if run_genai:
-            with st.spinner("Generating suggestions..."):
-                try:
-                    improve_payload = generate_improvements(resume_text, jd)
-                except Exception as e:
-                    st.exception(e)
-                    st.stop()
-
-            suggestions = improve_payload.get("suggestions", [])
-            gap_report = improve_payload.get("gap_report", {})
-            notes = improve_payload.get("notes", [])
-            guardrails = improve_payload.get("guardrails", [])
-
-            if not suggestions:
-                st.info("No suggestions returned. Try switching provider or using a longer resume.")
-            else:
-                st.write(f"**Suggestions** ({len(suggestions)})")
-
-                # Render suggestion cards
-                for i, s in enumerate(suggestions, start=1):
-                    with st.container(border=True):
-                        top = st.columns([5, 2, 2])
-                        with top[0]:
-                            st.markdown(
-                                f"**{i}. {s['type'].replace('_',' ').title()} → {s['target_section'].title()}**"
-                            )
-                        with top[1]:
-                            # needs evidence badge
-                            if s.get("needs_evidence"):
-                                st.markdown(":orange[**needs evidence**]")
-                            else:
-                                st.markdown(":green[**grounded**]")
-                        with top[2]:
-                            # estimated lift chips
-                            lift = s.get("est_lift", {})
-                            sem = lift.get("semantic", 0.0)
-                            skl = lift.get("skills", 0.0)
-                            st.markdown(f"Δ semantic: **{sem:+.2f}**, Δ skills: **{skl:+.2f}**")
-
-                        # Proposed line
-                        st.markdown("**Proposed:**")
-                        st.code(s["proposed"], language="text")
-
-                        # Optional original
-                        if s.get("original"):
-                            with st.expander("Original"):
-                                st.code(s["original"], language="text")
-
-                        # Rationale
-                        st.markdown(f"**Why:** {s['rationale']}")
-
-                        # Copy button
-                        st.button(
-                            "Copy proposed",
-                            key=f"copy_{i}",
-                            use_container_width=False,
-                            on_click=lambda txt=s["proposed"]: st.session_state.update(
-                                {"_copy_last": txt}
-                            ),
-                            help="Copies the proposed line to session state (you can manually copy from the code block).",
+            for i, s in enumerate(suggestions, start=1):
+                with st.container(border=True):
+                    # Header line
+                    top = st.columns([5, 2, 2])
+                    with top[0]:
+                        st.markdown(
+                            f"**{i}. {s['type'].replace('_',' ').title()} → {s['target_section'].title()}**"
                         )
+                    with top[1]:
+                        st.markdown(
+                            ":orange[**needs evidence**]"
+                            if s.get("needs_evidence")
+                            else ":green[**grounded**]"
+                        )
+                    with top[2]:
+                        lift = s.get("est_lift", {})
+                        sem = lift.get("semantic", 0.0)
+                        skl = lift.get("skills", 0.0)
+                        st.markdown(f"Δ semantic: **{sem:+.2f}**, Δ skills: **{skl:+.2f}**")
 
-                # Gap report summary (collapsible)
-                with st.expander("Gap report"):
-                    st.write(gap_report)
+                    # Proposed rewrite
+                    st.markdown("**Proposed:**")
+                    st.code(s["proposed"], language="text")
 
-                # Notes & guardrails
-                if notes:
-                    st.write("**Notes:**")
-                    for n in notes:
-                        st.write(f"- {n}")
-                if guardrails:
-                    st.write("**Guardrails:**")
-                    for g in guardrails:
-                        st.write(f"- {g}")
+                    # Original (optional)
+                    if s.get("original"):
+                        with st.expander("Original"):
+                            st.code(s["original"], language="text")
 
-                # Download suggestions JSON
-                from datetime import datetime
+                    # Rationale
+                    st.markdown(f"**Why:** {s['rationale']}")
 
-                ts2 = datetime.now().strftime("%Y%m%d_%H%M%S")
-                fname2 = f"suggestions_{jd['id']}_{ts2}.json"
-                st.download_button(
-                    "Download suggestions JSON",
-                    data=json.dumps(improve_payload, ensure_ascii=False, indent=2).encode("utf-8"),
-                    file_name=fname2,
-                    mime="application/json",
-                )
+            # --- Expanders for additional info ---
+            with st.expander("Gap Report"):
+                st.write(gap_report)
+
+            if notes:
+                st.write("**Notes:**")
+                for n in notes:
+                    st.write(f"- {n}")
+            if guardrails:
+                st.write("**Guardrails:**")
+                for g in guardrails:
+                    st.write(f"- {g}")
+
+            # --- Download button for results ---
+            ts2 = datetime.now().strftime("%Y%m%d_%H%M%S")
+            fname2 = f"suggestions_{(ss_jd.get('id') or 'jd')}_{ts2}.json"
+            st.download_button(
+                "📥 Download suggestions JSON",
+                data=json.dumps(improve_payload, ensure_ascii=False, indent=2).encode("utf-8"),
+                file_name=fname2,
+                mime="application/json",
+            )
 
 
 st.caption(

@@ -4,6 +4,8 @@ import json
 import os
 from typing import Any, Dict, Protocol
 
+from src.genai.local_provider import LocalProvider
+
 
 class LLMProvider(Protocol):
     def generate_json(
@@ -95,6 +97,10 @@ def provider_from_env() -> LLMProvider:
     GENAI_PROVIDER: 'openai' | 'mock' (default: mock)
     """
     which = os.getenv("GENAI_PROVIDER", "mock").lower().strip()
+
+    if which == "local":
+        return LocalProvider()
+
     if which == "openai":
         # fail early if no key
         if not os.getenv("OPENAI_API_KEY"):
