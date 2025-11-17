@@ -1,0 +1,8 @@
+from phi3:mini
+
+# Optional hyperparameters (adjustable)
+parameter learning_rate 1e-5
+parameter epochs 3
+
+# Train on your dataset.
+train file=./data/data_sample.jsonl
