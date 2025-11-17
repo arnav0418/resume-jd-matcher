@@ -2,7 +2,6 @@ import os
 import json
 import requests
 import regex
-import time
 from typing import Any, Dict
 
 raw_sample = {
@@ -65,9 +64,6 @@ class LocalProvider:
     def generate_json(
         self, system: str, user: str, *, temperature: float = 0.2, max_tokens: int = 800
     ) -> Dict[str, Any]:
-
-        time.sleep(5)
-        return raw_sample
 
         prompt = (
             f"{system}\n\n"
